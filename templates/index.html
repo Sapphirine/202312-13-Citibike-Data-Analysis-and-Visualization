@@ -45,6 +45,7 @@
     <a href="#" onclick="showContent('busiestStations')">Busiest Stations</a>
     <a href="#" onclick="showContent('popularRoutes')">Popular Routes</a>
     <a href="#" onclick="showContent('stationInfo')">Station Info</a>
+    <a href="#" onclick="showContent('topMember')">Top Member</a>
     <a href="#" onclick="showContent('predictHourly')">Predict Hourly Activity</a>    
 </div>
 
@@ -124,6 +125,32 @@
         {% endif %}
     </div>
 
+        <!-- Top Member Stations Section -->
+    <div id="topMember" class="content-section {{ 'active-content' if active_section == 'topMember' else 'hidden' }}">
+        <h1>Top Member Stations</h1>
+        <form method="post" action="/top_member">
+            <div class="form-group">
+                <label for="start_date_top_member">Start Date:</label>
+                <input type="date" class="form-control" name="start_date" id="start_date_top_member">
+            </div>
+            <div class="form-group">
+                <label for="end_date_top_member">End Date:</label>
+                <input type="date" class="form-control" name="end_date" id="end_date_top_member">
+            </div>
+            <div class="form-group">
+                <label for="num_stations_top_member">Number of Stations:</label>
+                <input type="number" class="form-control" name="num_stations" id="num_stations_top_member" min="1">
+            </div>
+            <button type="submit" class="btn btn-primary">Show Top Member Stations</button>
+        </form>
+        {% if top_member_stations_plot %}
+            <img src="data:image/png;base64,{{ top_member_stations_plot }}" class="img-fluid" alt="Top Member Stations">
+        {% endif %}
+        {% if top_ratio_stations_plot %}
+            <img src="data:image/png;base64,{{ top_ratio_stations_plot }}" class="img-fluid" alt="Top Member Stations (Ratio)">
+        {% endif %}
+    </div>
+
     <!-- Predict Hourly Activity Section -->
     <div id="predictHourly" class="content-section {{ 'active-content' if active_section == 'predictHourly' else 'hidden' }}">
         <h1>Predict Hourly Activity</h1>
@@ -142,6 +169,7 @@
             <img src="data:image/png;base64,{{ prediction_plot }}" class="img-fluid" alt="Hourly Activity Prediction">
         {% endif %}
     </div>
+
 
 
 </div>

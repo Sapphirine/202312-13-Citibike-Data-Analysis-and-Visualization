@@ -253,6 +253,108 @@ def predict_hourly_activity():
     plt.close()
     return render_template('index.html', prediction_plot=plot_url, active_section='predictHourly')
 
+from pyspark.sql.types import FloatType
+from pyspark.sql.functions import col, coalesce, sum, lit
+
+#top member stations
+def get_top_member_stations(cleaned_df, start_date, end_date, num_stations):
+    # Filter the data based on user input
+    filtered_df = cleaned_df.filter((col('started_at') >= start_date) & (col('ended_at') <= end_date) & (col('member_casual') == 'member'))
+
+    # Group by start station and count the number of rides
+    station_counts = filtered_df.groupBy('start_station_name').count().withColumnRenamed('count', 'member_count').withColumnRenamed('start_station_name', 'station_name')
+
+    # Order by the member count and limit to the specified number of stations
+    top_member_stations = station_counts.orderBy('member_count', ascending=False).limit(num_stations)
+
+    return top_member_stations.toPandas()
+
+# Function to plot the top member stations
+def plot_top_member_stations(station_df, num_stations, start_date, end_date):
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(12, 7))
+    bars = plt.bar(station_df['station_name'], station_df['member_count'], color=sns.color_palette("muted", len(station_df)))
+
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval, int(yval), va='bottom', ha='center', fontsize=10)
+
+    plt.xlabel('Station Name', fontsize=12)
+    plt.ylabel('Number of Member Rides', fontsize=12)
+    plt.xticks(rotation=45, ha='right', fontsize=10)
+    plt.title(f'Top {num_stations} Stations with Most Members from {start_date} to {end_date}', fontsize=14)
+
+    img = BytesIO()
+    plt.savefig(img, format='png', bbox_inches='tight')
+    img.seek(0)
+    top_member_stations_plot = base64.b64encode(img.getvalue()).decode()
+    plt.close()
+
+    return top_member_stations_plot
+
+# Function to get the top stations with the highest member-to-casual ratio
+def get_top_ratio_stations(cleaned_df, start_date, end_date, num_stations):
+    # Filter the data based on user input
+    filtered_df = cleaned_df.filter((col('started_at') >= start_date) & (col('ended_at') <= end_date))
+
+    # Group by start station and count the number of rides for each member type
+    station_counts = filtered_df.groupBy('start_station_name', 'member_casual').count()
+
+    # Pivot the table to have separate columns for member and casual counts
+    pivoted_counts = station_counts.groupBy('start_station_name').pivot('member_casual').agg(coalesce(sum('count').cast(FloatType()), lit(0)))
+
+    # Calculate the ratio between member and casual rides
+    pivoted_counts = pivoted_counts.withColumn('ratio', coalesce(col('member') / col('casual'), lit(0)))
+
+    # Order by the ratio and limit to the specified number of stations
+    top_ratio_stations = pivoted_counts.orderBy('ratio', ascending=False).limit(num_stations)
+
+    return top_ratio_stations.toPandas()
+
+# Function to plot the top stations with the highest member-to-casual ratio
+def plot_top_ratio_stations(station_df, num_stations, start_date, end_date):
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(12, 7))
+    bars = plt.bar(station_df['start_station_name'], station_df['ratio'], color=sns.color_palette("muted", len(station_df)))
+
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width()/2, yval, f"{yval:.2f}", va='bottom', ha='center', fontsize=10)
+
+    plt.xlabel('Station Name', fontsize=12)
+    plt.ylabel('Member-to-Casual Ratio', fontsize=12)
+    plt.xticks(rotation=45, ha='right', fontsize=10)
+    plt.title(f'Top {num_stations} Stations with Highest Member-to-Casual Ratio from {start_date} to {end_date}', fontsize=14)
+
+    img = BytesIO()
+    plt.savefig(img, format='png', bbox_inches='tight')
+    img.seek(0)
+    top_ratio_stations_plot = base64.b64encode(img.getvalue()).decode()
+    plt.close()
+
+    return top_ratio_stations_plot
+
+# Route for top_member
+@app.route('/top_member', methods=['POST'])
+def top_member():
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date')
+    num_stations = int(request.form.get('num_stations', 10))
+
+    # Load data and clean
+    df = load_data()
+    cleaned_df = clean_data(df)
+
+    # Get top member stations and plot
+    top_member_stations = get_top_member_stations(cleaned_df, start_date, end_date, num_stations)
+    top_member_stations_plot = plot_top_member_stations(top_member_stations, num_stations, start_date, end_date)
+
+    # Get top stations with highest member-to-casual ratio and plot
+    top_ratio_stations = get_top_ratio_stations(cleaned_df, start_date, end_date, num_stations)
+    top_ratio_stations_plot = plot_top_ratio_stations(top_ratio_stations, num_stations, start_date, end_date)
+
+    return render_template('index.html', top_member_stations_plot=top_member_stations_plot, top_ratio_stations_plot=top_ratio_stations_plot, active_section='topMember')
+
 
 @app.route('/', methods=['GET'])
 def index():
