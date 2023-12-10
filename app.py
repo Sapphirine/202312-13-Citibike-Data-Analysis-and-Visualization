@@ -199,63 +199,30 @@ def plot_member_casual_comparison(filtered_df, station_name, start_date, end_dat
     plt.close()
     return plot_url
 
-#Predict Hourly Activity
-@app.route('/predict_hourly_activity', methods=['POST'])
-def predict_hourly_activity():
-    station_name = request.form.get('station_name')
-    forecast_days = int(request.form.get('forecast_days')) 
-    def safe_filename(name):
-        return re.sub(r'\W+', '_', name)
-
-    model_dir = 'prophet_models'
-
-    test_station = station_name  
-
-    model_file_name = f'prophet_model_{safe_filename(test_station)}.pkl'
-    model_file_path = os.path.join(model_dir, model_file_name)
-
-    if os.path.exists(model_file_path):
-        with open(model_file_path, 'rb') as f:
-            model = pickle.load(f)
-    else:
-        print(f"Model file for {test_station} does not exist.")
-        exit()
-
-    last_historical_date = model.history_dates.max()
-    
-    next_day = last_historical_date + pd.DateOffset(days=1)
-    start_date = pd.Timestamp(year=next_day.year, month=next_day.month, day=next_day.day, hour=0, minute=0)
-    
-    future = pd.DataFrame({'ds': pd.date_range(start=start_date, end=start_date+pd.Timedelta(days=forecast_days), freq='H')})
-
-    forecast = model.predict(future)
-
-    plt.figure(figsize=(15, 6))
-    plt.subplots_adjust(bottom=0.2)  
-    plt.plot(forecast['ds'], forecast['yhat'], label='Forecast', color='blue')
-    plt.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], color='lightblue', alpha=0.5, label='Uncertainty interval')
-
-    plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=1))  
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))  
-    plt.xticks(rotation=90) 
-
-    plt.xlabel('Date and Hour')
-    plt.ylabel('Ride Volume')
-    plt.title(f'Forecasted Hourly Activity in the Next {forecast_days} Day(s) at {test_station}')
-    plt.legend()
-
-    plt.grid(True)
-
-    # Convert the plot to a PNG image in base64 format
-    img = BytesIO()
-    plt.savefig(img, format='png')
-    img.seek(0)
-    plot_url = base64.b64encode(img.getvalue()).decode()
-    plt.close()
-    return render_template('index.html', prediction_plot=plot_url, active_section='predictHourly')
-
 from pyspark.sql.types import FloatType
 from pyspark.sql.functions import col, coalesce, sum, lit
+
+
+# Top Member
+@app.route('/top_member', methods=['POST'])
+def top_member():
+    start_date = request.form.get('start_date')
+    end_date = request.form.get('end_date')
+    num_stations = int(request.form.get('num_stations', 10))
+
+    # Load data and clean
+    df = load_data()
+    cleaned_df = clean_data(df)
+
+    # Get top member stations and plot
+    top_member_stations = get_top_member_stations(cleaned_df, start_date, end_date, num_stations)
+    top_member_stations_plot = plot_top_member_stations(top_member_stations, num_stations, start_date, end_date)
+
+    # Get top stations with highest member-to-casual ratio and plot
+    top_ratio_stations = get_top_ratio_stations(cleaned_df, start_date, end_date, num_stations)
+    top_ratio_stations_plot = plot_top_ratio_stations(top_ratio_stations, num_stations, start_date, end_date)
+
+    return render_template('index.html', top_member_stations_plot=top_member_stations_plot, top_ratio_stations_plot=top_ratio_stations_plot, active_section='topMember')
 
 #top member stations
 def get_top_member_stations(cleaned_df, start_date, end_date, num_stations):
@@ -335,26 +302,61 @@ def plot_top_ratio_stations(station_df, num_stations, start_date, end_date):
 
     return top_ratio_stations_plot
 
-# Route for top_member
-@app.route('/top_member', methods=['POST'])
-def top_member():
-    start_date = request.form.get('start_date')
-    end_date = request.form.get('end_date')
-    num_stations = int(request.form.get('num_stations', 10))
+# Predict Hourly Activity
+@app.route('/predict_hourly_activity', methods=['POST'])
+def predict_hourly_activity():
+    station_name = request.form.get('station_name')
+    forecast_days = int(request.form.get('forecast_days')) 
+    def safe_filename(name):
+        return re.sub(r'\W+', '_', name)
 
-    # Load data and clean
-    df = load_data()
-    cleaned_df = clean_data(df)
+    model_dir = 'prophet_models'
 
-    # Get top member stations and plot
-    top_member_stations = get_top_member_stations(cleaned_df, start_date, end_date, num_stations)
-    top_member_stations_plot = plot_top_member_stations(top_member_stations, num_stations, start_date, end_date)
+    test_station = station_name  
 
-    # Get top stations with highest member-to-casual ratio and plot
-    top_ratio_stations = get_top_ratio_stations(cleaned_df, start_date, end_date, num_stations)
-    top_ratio_stations_plot = plot_top_ratio_stations(top_ratio_stations, num_stations, start_date, end_date)
+    model_file_name = f'prophet_model_{safe_filename(test_station)}.pkl'
+    model_file_path = os.path.join(model_dir, model_file_name)
 
-    return render_template('index.html', top_member_stations_plot=top_member_stations_plot, top_ratio_stations_plot=top_ratio_stations_plot, active_section='topMember')
+    if os.path.exists(model_file_path):
+        with open(model_file_path, 'rb') as f:
+            model = pickle.load(f)
+    else:
+        print(f"Model file for {test_station} does not exist.")
+        exit()
+
+    last_historical_date = model.history_dates.max()
+    
+    next_day = last_historical_date + pd.DateOffset(days=1)
+    start_date = pd.Timestamp(year=next_day.year, month=next_day.month, day=next_day.day, hour=0, minute=0)
+    
+    future = pd.DataFrame({'ds': pd.date_range(start=start_date, end=start_date+pd.Timedelta(days=forecast_days), freq='H')})
+
+    forecast = model.predict(future)
+
+    plt.figure(figsize=(15, 6))
+    plt.subplots_adjust(bottom=0.2)  
+    plt.plot(forecast['ds'], forecast['yhat'], label='Forecast', color='blue')
+    plt.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], color='lightblue', alpha=0.5, label='Uncertainty interval')
+
+    plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=1))  
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))  
+    plt.xticks(rotation=90) 
+
+    plt.xlabel('Date and Hour')
+    plt.ylabel('Ride Volume')
+    plt.title(f'Forecasted Hourly Activity in the Next {forecast_days} Day(s) at {test_station}')
+    plt.legend()
+
+    plt.grid(True)
+
+    # Convert the plot to a PNG image in base64 format
+    img = BytesIO()
+    plt.savefig(img, format='png')
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode()
+    plt.close()
+    return render_template('index.html', prediction_plot=plot_url, active_section='predictHourly')
+
 
 
 @app.route('/', methods=['GET'])
