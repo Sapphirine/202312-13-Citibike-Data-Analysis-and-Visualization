@@ -199,6 +199,7 @@ def plot_member_casual_comparison(filtered_df, station_name, start_date, end_dat
     plt.close()
     return plot_url
 
+#Predict Hourly Activity
 @app.route('/predict_hourly_activity', methods=['POST'])
 def predict_hourly_activity():
     station_name = request.form.get('station_name')
