@@ -230,23 +230,22 @@ def predict_hourly_activity():
     forecast = model.predict(future)
 
     plt.figure(figsize=(15, 6))
-    plt.subplots_adjust(bottom=0.2)
+    plt.subplots_adjust(bottom=0.2)  
+    plt.plot(forecast['ds'], forecast['yhat'], label='Forecast', color='blue')
+    plt.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], color='lightblue', alpha=0.5, label='Uncertainty interval')
 
-    plt.bar(forecast['ds'], forecast['yhat'], width=0.04, label='Forecast', color='blue', align='center')
-
-    plt.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], color='lightblue', alpha=0.3, label='Uncertainty interval')
-
-    plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=1))
-    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))
-    plt.xticks(rotation=90)
+    plt.gca().xaxis.set_major_locator(mdates.HourLocator(interval=1))  
+    plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d %H:%M'))  
+    plt.xticks(rotation=90) 
 
     plt.xlabel('Date and Hour')
     plt.ylabel('Ride Volume')
-    plt.title(f'Forecasted Hourly Activity for the Next {forecast_days} Day(s) at {test_station}')
+    plt.title(f'Forecasted Hourly Activity in the Next {forecast_days} Day(s) at {test_station}')
     plt.legend()
 
     plt.grid(True)
 
+    # Convert the plot to a PNG image in base64 format
     img = BytesIO()
     plt.savefig(img, format='png')
     img.seek(0)
