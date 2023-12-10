@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citi Bike Data Visualization</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            height: 100vh;
+            width: 250px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #f8f9fa;
+            padding-top: 20px;
+            border-right: 1px solid #ddd;
+        }
+        .sidebar a {
+            padding: 10px 15px;
+            text-decoration: none;
+            font-size: 18px;
+            color: #007bff;
+            display: block;
+        }
+        .sidebar a:hover {
+            color: #0056b3;
+        }
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+        }
+        .hidden { display: none; }
+        .active-content { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="sidebar">
+    <a href="#" onclick="showContent('busiestStations')">Busiest Stations</a>
+    <a href="#" onclick="showContent('popularRoutes')">Popular Routes</a>
+    <a href="#" onclick="showContent('stationInfo')">Station Info</a>
+    <a href="#" onclick="showContent('predictHourly')">Predict Hourly Activity</a>    
+</div>
+
+<div class="content">
+    <!-- Busiest Stations Section -->
+    <div id="busiestStations" class="content-section {{ 'active-content' if active_section == 'busiestStations' else 'hidden' }}">
+        <h1>Busiest Stations</h1>
+        <form method="post" action="/busiest_stations">
+            <div class="form-group">
+                <label for="start_date">Start Date:</label>
+                <input type="date" class="form-control" name="start_date" id="start_date">
+            </div>
+            <div class="form-group">
+                <label for="end_date">End Date:</label>
+                <input type="date" class="form-control" name="end_date" id="end_date">
+            </div>
+            <div class="form-group">
+                <label for="num_stations">Number of Stations:</label>
+                <input type="number" class="form-control" name="num_stations" id="num_stations" min="1" >
+            </div>
+            <button type="submit" class="btn btn-primary">Show Busiest Stations</button>
+        </form>
+        {% if busiest_stations_plot %}
+            <img src="data:image/png;base64,{{ busiest_stations_plot }}" class="img-fluid" alt="Busiest Stations">
+        {% endif %}
+    </div>
+
+    <!-- Popular Routes Section -->
+    <div id="popularRoutes" class="content-section {{ 'active-content' if active_section == 'popularRoutes' else 'hidden' }}">
+        <h1>Popular Routes</h1>
+        <form method="post" action="/popular_routes">
+            <div class="form-group">
+                <label for="start_date_routes">Start Date:</label>
+                <input type="date" class="form-control" name="start_date" id="start_date_routes" min="1">
+            </div>
+            <div class="form-group">
+                <label for="end_date_routes">End Date:</label>
+                <input type="date" class="form-control" name="end_date" id="end_date_routes">
+            </div>
+            <div class="form-group">
+                <label for="num_routes">Number of Routes:</label>
+                <input type="number" class="form-control" name="num_routes" id="num_routes" min="1">
+            </div>
+            <button type="submit" class="btn btn-primary">Show Popular Routes</button>
+        </form>
+        {% if popular_routes_plot %}
+            <img src="data:image/png;base64,{{ popular_routes_plot }}" class="img-fluid" alt="Popular Routes">
+        {% endif %}
+    </div>
+
+    <!-- Station Info -->
+    <div id="stationInfo" class="content-section {{ 'active-content' if active_section == 'stationInfo' else 'hidden' }}">
+        <h1>Station Info</h1>
+        <form method="post" action="/station_info">
+            <div class="form-group">
+                <label for="station_name">Station Name:</label>
+                <input type="text" class="form-control" name="station_name" id="station_name" required>
+            </div>
+            <div class="form-group">
+                <label for="start_date_station">Start Date:</label>
+                <input type="date" class="form-control" name="start_date" id="start_date_station">
+            </div>
+            <div class="form-group">
+                <label for="end_date_station">End Date:</label>
+                <input type="date" class="form-control" name="end_date" id="end_date_station">
+            </div>
+            <button type="submit" class="btn btn-primary">Show Station Info</button>
+        </form>
+        {% if hourly_plot %}
+            <img src="data:image/png;base64,{{ hourly_plot }}" class="img-fluid" alt="Hourly Activity">
+        {% endif %}
+        {% if bike_type_plot %}
+            <img src="data:image/png;base64,{{ bike_type_plot }}" class="img-fluid" alt="Bike Type Usage">
+        {% endif %}
+        {% if member_casual_plot %}
+            <img src="data:image/png;base64,{{ member_casual_plot }}" class="img-fluid" alt="Member vs Casual Comparison">
+        {% endif %}
+    </div>
+
+    <!-- Predict Hourly Activity Section -->
+    <div id="predictHourly" class="content-section {{ 'active-content' if active_section == 'predictHourly' else 'hidden' }}">
+        <h1>Predict Hourly Activity</h1>
+        <form method="post" action="/predict_hourly_activity">
+            <div class="form-group">
+                <label for="station_name_predict">Station Name:</label>
+                <input type="text" class="form-control" name="station_name" id="station_name_predict" required>
+            </div>
+            <div class="form-group">
+                <label for="forecast_days">Number of Days for Prediction:</label>
+                <input type="number" class="form-control" name="forecast_days" id="forecast_days" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Predict</button>
+        </form>
+        {% if prediction_plot %}
+            <img src="data:image/png;base64,{{ prediction_plot }}" class="img-fluid" alt="Hourly Activity Prediction">
+        {% endif %}
+    </div>
+
+
+</div>
+
+<script>
+    function showContent(sectionId) {
+        var sections = document.getElementsByClassName('content-section');
+        for (var i = 0; i < sections.length; i++) {
+            sections[i].style.display = 'none';
+            var imgs = sections[i].getElementsByTagName('img');
+            for (var j = 0; j < imgs.length; j++) {
+                imgs[j].src = '';
+            }
+        }
+        document.getElementById(sectionId).style.display = 'block';
+    }
+</script>
+
+
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</body>
+</html>
