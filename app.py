@@ -310,8 +310,10 @@ def predict_hourly_activity():
     def safe_filename(name):
         return re.sub(r'\W+', '_', name)
 
-    model_dir = 'prophet_models'
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
+    model_dir = os.path.join(script_dir, 'prophet_models')
+    
     test_station = station_name  
 
     model_file_name = f'prophet_model_{safe_filename(test_station)}.pkl'
