@@ -306,34 +306,24 @@ def plot_top_ratio_stations(station_df, num_stations, start_date, end_date):
 @app.route('/predict_hourly_activity', methods=['POST'])
 def predict_hourly_activity():
     station_name = request.form.get('station_name')
-    forecast_days = int(request.form.get('forecast_days')) 
+    start_date = request.form.get('start_date')  # Get the start date from the form
+    end_date = request.form.get('end_date')      # Get the end date from the form
+    
     def safe_filename(name):
         return re.sub(r'\W+', '_', name)
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
-
     model_dir = os.path.join(script_dir, 'prophet_models')
     
-    test_station = station_name  
-
-    model_file_name = f'prophet_model_{safe_filename(test_station)}.pkl'
+    model_file_name = f'prophet_model_{safe_filename(station_name)}.pkl'
     model_file_path = os.path.join(model_dir, model_file_name)
 
     if os.path.exists(model_file_path):
         with open(model_file_path, 'rb') as f:
             model = pickle.load(f)
-    else:
-        print(f"Model file for {test_station} does not exist.")
-        exit()
 
-    last_historical_date = model.history_dates.max()
-    
-    next_day = last_historical_date + pd.DateOffset(days=1)
-    start_date = pd.Timestamp(year=next_day.year, month=next_day.month, day=next_day.day, hour=0, minute=0)
-    
-    future = pd.DataFrame({'ds': pd.date_range(start=start_date, end=start_date+pd.Timedelta(days=forecast_days), freq='H')})
-
-    forecast = model.predict(future)
+        future = pd.DataFrame({'ds': pd.date_range(start=start_date, end=end_date, freq='H')})
+        forecast = model.predict(future)
 
     plt.figure(figsize=(15, 6))
     plt.subplots_adjust(bottom=0.2)  
@@ -346,12 +336,16 @@ def predict_hourly_activity():
 
     plt.xlabel('Date and Hour')
     plt.ylabel('Ride Volume')
-    plt.title(f'Forecasted Hourly Activity in the Next {forecast_days} Day(s) at {test_station}')
+
+    formatted_start_date = datetime.strptime(start_date, '%Y-%m-%d').strftime('%Y-%m-%d')
+    formatted_end_date = datetime.strptime(end_date, '%Y-%m-%d').strftime('%Y-%m-%d')
+
+    plt.title(f'Forecasted Hourly Activity from {formatted_start_date} to {formatted_end_date} at {station_name}')
+
     plt.legend()
 
     plt.grid(True)
 
-    # Convert the plot to a PNG image in base64 format
     img = BytesIO()
     plt.savefig(img, format='png')
     img.seek(0)
