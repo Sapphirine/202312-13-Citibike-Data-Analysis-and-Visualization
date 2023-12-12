@@ -115,6 +115,11 @@
             </div>
             <button type="submit" class="btn btn-primary">Show Station Info</button>
         </form>
+        {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+            {{ error_message }}
+        </div>
+        {% endif %}
         {% if hourly_plot %}
             <img src="data:image/png;base64,{{ hourly_plot }}" class="img-fluid" alt="Hourly Activity">
         {% endif %}
@@ -170,6 +175,11 @@
             </div>
             <button type="submit" class="btn btn-primary">Predict</button>
         </form>
+        {% if error_message %}
+        <div class="alert alert-danger" role="alert">
+            {{ error_message }}
+        </div>
+        {% endif %}
         {% if prediction_plot %}
             <img src="data:image/png;base64,{{ prediction_plot }}" class="img-fluid" alt="Hourly Activity Prediction">
         {% endif %}

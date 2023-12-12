@@ -26,14 +26,15 @@ def clean_data(df):
     cleaned_df = df.filter(col('start_station_name') != col('end_station_name'))
     return cleaned_df
 
+df = load_data()
+cleaned_df = clean_data(df)
+
 #Busiest Stations
 @app.route('/busiest_stations', methods=['POST'])
 def busiest_stations():
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
     num_stations = int(request.form.get('num_stations', 10))
-    df = load_data()
-    cleaned_df = clean_data(df)
     top_stations = get_busiest_stations(cleaned_df, start_date, end_date, num_stations)
     busiest_stations_plot = plot_busiest_stations(top_stations, num_stations, start_date, end_date)
     return render_template('index.html', busiest_stations_plot=busiest_stations_plot, active_section='busiestStations')
@@ -76,8 +77,6 @@ def popular_routes():
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
     num_routes = int(request.form.get('num_routes', 10))
-    df = load_data()
-    cleaned_df = clean_data(df)
     popular_routes_df = get_popular_routes(cleaned_df, start_date, end_date, num_routes)
     popular_routes_plot = plot_popular_routes(popular_routes_df, num_routes, start_date, end_date)
     return render_template('index.html', popular_routes_plot=popular_routes_plot, active_section='popularRoutes')
@@ -116,8 +115,15 @@ def station_info():
     station_name = request.form.get('station_name')
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
-    df = load_data()
-    cleaned_df = clean_data(df)
+    
+    station_exists = cleaned_df.filter(
+        (cleaned_df['start_station_name'] == station_name) | 
+        (cleaned_df['end_station_name'] == station_name)
+    ).count() > 0
+
+    if not station_exists:
+        error_message = f"Station '{station_name}' does not exist."
+        return render_template('index.html', error_message=error_message, active_section='stationInfo')
     
     filtered_df = cleaned_df.filter(
         ((cleaned_df['start_station_name'] == station_name) | (cleaned_df['end_station_name'] == station_name)) &
@@ -209,10 +215,6 @@ def top_member():
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
     num_stations = int(request.form.get('num_stations', 10))
-
-    # Load data and clean
-    df = load_data()
-    cleaned_df = clean_data(df)
 
     # Get top member stations and plot
     top_member_stations = get_top_member_stations(cleaned_df, start_date, end_date, num_stations)
@@ -308,6 +310,15 @@ def predict_hourly_activity():
     station_name = request.form.get('station_name')
     start_date = request.form.get('start_date')  # Get the start date from the form
     end_date = request.form.get('end_date')      # Get the end date from the form
+    
+    station_exists = cleaned_df.filter(
+        (cleaned_df['start_station_name'] == station_name) | 
+        (cleaned_df['end_station_name'] == station_name)
+    ).count() > 0
+
+    if not station_exists:
+        error_message = f"Station '{station_name}' does not exist."
+        return render_template('index.html', error_message=error_message, active_section='predictHourly')
     
     def safe_filename(name):
         return re.sub(r'\W+', '_', name)
