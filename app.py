@@ -115,22 +115,19 @@ def station_info():
     station_name = request.form.get('station_name')
     start_date = request.form.get('start_date')
     end_date = request.form.get('end_date')
-    
-    station_exists = cleaned_df.filter(
-        (cleaned_df['start_station_name'] == station_name) | 
-        (cleaned_df['end_station_name'] == station_name)
-    ).count() > 0
-
-    if not station_exists:
-        error_message = f"Station '{station_name}' does not exist."
-        return render_template('index.html', error_message=error_message, active_section='stationInfo')
-    
+        
     filtered_df = cleaned_df.filter(
         ((cleaned_df['start_station_name'] == station_name) | (cleaned_df['end_station_name'] == station_name)) &
         (cleaned_df['started_at'] >= start_date) & 
         (cleaned_df['ended_at'] <= end_date)
     )
 
+    station_exists = filtered_df.count() > 0
+
+    if not station_exists:
+        error_message = f"No records found for station '{station_name}' within the specified date range."
+        return render_template('index.html', error_message=error_message, active_section='stationInfo')
+    
     hourly_plot = plot_hourly_activity(filtered_df, station_name, start_date, end_date)
     bike_type_plot = plot_bike_type_usage(filtered_df, station_name, start_date, end_date)
     member_casual_plot = plot_member_casual_comparison(filtered_df, station_name, start_date, end_date)
@@ -311,15 +308,6 @@ def predict_hourly_activity():
     start_date = request.form.get('start_date')  # Get the start date from the form
     end_date = request.form.get('end_date')      # Get the end date from the form
     
-    station_exists = cleaned_df.filter(
-        (cleaned_df['start_station_name'] == station_name) | 
-        (cleaned_df['end_station_name'] == station_name)
-    ).count() > 0
-
-    if not station_exists:
-        error_message = f"Station '{station_name}' does not exist."
-        return render_template('index.html', error_message=error_message, active_section='predictHourly')
-    
     def safe_filename(name):
         return re.sub(r'\W+', '_', name)
 
@@ -335,6 +323,9 @@ def predict_hourly_activity():
 
         future = pd.DataFrame({'ds': pd.date_range(start=start_date, end=end_date, freq='H')})
         forecast = model.predict(future)
+    else:
+        error_message = f"Station '{station_name}' does not exist."
+        return render_template('index.html', error_message=error_message, active_section='predictHourly')
 
     plt.figure(figsize=(15, 6))
     plt.subplots_adjust(bottom=0.2)  
