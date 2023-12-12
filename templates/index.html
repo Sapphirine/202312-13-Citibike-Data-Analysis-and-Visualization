@@ -46,7 +46,8 @@
     <a href="#" onclick="showContent('popularRoutes')">Popular Routes</a>
     <a href="#" onclick="showContent('stationInfo')">Station Info</a>
     <a href="#" onclick="showContent('topMember')">Top Member</a>
-    <a href="#" onclick="showContent('predictHourly')">Predict Hourly Activity</a>    
+    <a href="#" onclick="showContent('predictHourly')">Predict Hourly Activity</a>  
+    <a href="#" onclick="showContent('topStationPredict')">Top Station Predict</a>  
 </div>
 
 <div class="content">
@@ -173,6 +174,25 @@
             <img src="data:image/png;base64,{{ prediction_plot }}" class="img-fluid" alt="Hourly Activity Prediction">
         {% endif %}
     </div>
+
+    <!-- busiest station predict on date -->
+    <div id="topStationPredict" class="content-section {{ 'active-content' if active_section == 'topStationPredict' else 'hidden' }}">
+        <h1>Top Station Predict</h1>
+        <form method="post" action="/top_station_by_date">
+            <div class="form-group">
+                <label for="date">Choose A Date:</label>
+                <input type="date" class="form-control" name="date" id="date">
+            </div>
+            <button type="submit" class="btn btn-primary">Show Top Station</button>
+        </form>
+        <div>
+            {% if top_station %}
+                <p>Top Station: {{ top_station }}</p>
+            {% else %}
+                <p>Please Select A Date.</p>
+            {% endif %}
+        </div>  
+    </div> 
 </div>
 
 <script>

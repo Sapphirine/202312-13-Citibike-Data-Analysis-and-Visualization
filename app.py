@@ -353,7 +353,49 @@ def predict_hourly_activity():
     plt.close()
     return render_template('index.html', prediction_plot=plot_url, active_section='predictHourly')
 
+# Predict top-station of the day
+@app.route('/top_station_by_date', methods=['POST'])
+def top_station_by_date():
+    date = None
+    top_station = None
+    date = request.form.get('date')
+    
+    if date:
+        dates = []
+        dates.append(date)
+        df = pd.DataFrame(dates, columns=['Date'])
 
+        # Convert the 'Date' column to datetime
+        df['Date'] = pd.to_datetime(df['Date'])
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        model_dir = os.path.join(script_dir, 'top_station_model')
+        
+        model_file_name = 'top-station-model.pkl'
+        model_file_path = os.path.join(model_dir, model_file_name)
+
+        label_encoder_name = 'label-encoder.pkl'
+        label_encoder_path = os.path.join(model_dir, label_encoder_name)
+
+        # load trained model 
+        with open(model_file_path, 'rb') as file:
+            clf = pickle.load(file)
+        with open(label_encoder_path, 'rb') as file:
+            le = pickle.load(file)
+        
+        df['day_of_week'] = df['Date'].dt.dayofweek
+        df['month'] = df['Date'].dt.month
+
+        X = df[['day_of_week', 'month']]  # Features
+
+        predictions = clf.predict(X)
+
+        # Convert predictions back to station names
+        predicted_stations = le.inverse_transform(predictions)
+
+        top_station = str(predicted_stations[0])
+
+    return render_template("index.html", top_station=top_station, active_section='topStationPredict')
 
 @app.route('/', methods=['GET'])
 def index():
